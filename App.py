@@ -5,16 +5,16 @@ import pickle
 import pandas as pd
 import numpy as np
 
-
 # Função para carregar o dicionário de modelos
 def load_models():
-    with open('trained_models_MAX_Q_FACTOR.pkl', 'rb') as file:
-        model_dict = pickle.load(file)
-    return model_dict
+    with open('trained_models_MAX_Q_FACTOR.pkl', 'rb') as file1, open('trained_models_MIN_BER.pkl', 'rb') as file2:
+        model_dict_max_q = pickle.load(file1)
+        model_dict_min_ber = pickle.load(file2)
+    return model_dict_max_q, model_dict_min_ber
 
-
-# Função para fazer a previsão
-def fazer_previsao(Att, Disp_i, Disp_f, p, model, model_type):
+# Função para fazer a previsão de MAX_Q_FACTOR
+def fazer_previsao_max_q(Att, Disp_i, Disp_f, p, model, model_type):
+    # Código para calcular MAX_Q_FACTOR
     n_samples = int((Disp_f - Disp_i) / p) + 1
 
     x1 = []
@@ -29,87 +29,102 @@ def fazer_previsao(Att, Disp_i, Disp_f, p, model, model_type):
     x = np.concatenate((x1, x2), axis=1)
     x = pd.DataFrame(x, columns=['Att', 'Disp'])
 
-    # Fazer a previsão com o modelo carregado
     prediction = model.predict(x)
 
-    # Plotar o gráfico com tamanho reduzido (6x4)
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.plot(x['Disp'], prediction, marker="o", label=f'Modelo: {model_type}')
 
-    # Adicionar o valor da Atenuação à linha do gráfico
     ax.plot(Disp_i, model.predict([[Att, Disp_i]]), marker="o", markersize=8, color='red', label=f'Atenuação: {Att}')
 
     ax.set_title('Regressor')
     ax.set_xlabel('Dispersão')
     ax.set_ylabel('MAX_Q_FACTOR')
 
-    # Diminuir o tamanho da fonte no eixo x
-    ax.tick_params(axis='x', labelrotation=45)  # Rotacionar rótulos do eixo x em 45 graus
-
-    # Adicionar marcações no eixo da Dispersão
+    ax.tick_params(axis='x', labelrotation=45)
     ax.set_xticks(np.arange(Disp_i, Disp_f + 1, p))
     ax.legend()
 
     return fig, x, prediction
 
+# Função para fazer a previsão de MIN_BER
+def fazer_previsao_min_ber(Att, Disp_i, Disp_f, p, model, model_type):
+    # Código para calcular MIN_BER
+    n_samples = int((Disp_f - Disp_i) / p) + 1
+
+    x1 = []
+    for i in range(n_samples):
+        x1.append([Att])
+
+    x2 = []
+    for i in range(n_samples):
+        valor = Disp_i + i * p
+        x2.append([valor])
+
+    x = np.concatenate((x1, x2), axis=1)
+    x = pd.DataFrame(x, columns=['Att', 'Disp'])
+
+    prediction = model.predict(x)
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.plot(x['Disp'], prediction, marker="o", label=f'Modelo: {model_type}')
+
+    ax.plot(Disp_i, model.predict([[Att, Disp_i]]), marker="o", markersize=8, color='red', label=f'Atenuação: {Att}')
+
+    ax.set_title('Regressor')
+    ax.set_xlabel('Dispersão')
+    ax.set_ylabel('MIN_BER')
+
+    ax.tick_params(axis='x', labelrotation=45)
+    ax.set_xticks(np.arange(Disp_i, Disp_f + 1, p))
+    ax.legend()
+
+    return fig, x, prediction
 
 # Configurações do Streamlit
 st.set_page_config(page_title="Ensino de Comunicações Ópticas Potencializado por Machine Learning", layout="wide")
 
 # Exibir as imagens
-col1, col2, col3 = st.columns(3)  # Crie 3 colunas para as imagens
+col1, col2, col3 = st.columns(3)
 
-# Redimensione e exiba a primeira imagem
 with col1:
     logo_fotonica = Image.open("assets/images/logo_fotonica.jpeg")
-    logo_fotonica = logo_fotonica.resize((200, 200))  # Redimensione para (50, 50)
+    logo_fotonica = logo_fotonica.resize((200, 200))
     st.image(logo_fotonica, use_column_width=False, width=200)
 
-# Redimensione e exiba a segunda imagem
 with col2:
     logo_ifce = Image.open("assets/images/logo_ifce.jpeg")
-    logo_ifce = logo_ifce.resize((100, 100))  # Redimensione para (50, 50)
+    logo_ifce = logo_ifce.resize((100, 100))
     st.image(logo_ifce, use_column_width=False, width=200)
 
-# Redimensione e exiba a terceira imagem
 with col3:
     logo_renoen = Image.open("assets/images/logo_Renoen.jpeg")
-    logo_renoen = logo_renoen.resize((200, 200))  # Redimensione para (50, 50)
+    logo_renoen = logo_renoen.resize((200, 200))
     st.image(logo_renoen, use_column_width=False, width=200)
 
-# Inserir uma linha horizontal
 st.markdown("<hr/>", unsafe_allow_html=True)
 
 st.title("Ensino de Comunicações Ópticas Potencializado por Machine Learning")
 
 # Carregar o dicionário de modelos
-model_dict = load_models()
+model_dict_max_q, model_dict_min_ber = load_models()
 
-# Mapear os nomes completos dos modelos para as siglas corretas
 modelo_siglas = {
     'Decision Tree': 'dtr',
     'Random Forest': 'rfr',
     'Gradient Boosting': 'gbr'
 }
 
-# Criar uma caixa de seleção para escolher o tipo de modelo
 model_type = st.selectbox('Selecione o tipo de modelo', list(modelo_siglas.keys()))
-
-# Criar uma caixa de seleção para escolher a proporção de dados
 proporcao = st.slider('Selecione a proporção de treinamento (%)', 10, 90, 10, 10)
 
-# Obter a sigla do modelo com base no nome completo
 modelo_sigla = modelo_siglas[model_type]
-
-# Criar o ID do modelo com base nas seleções do operador
 model_id = f"{modelo_sigla}_{proporcao}"
 
-# Verificar se o modelo escolhido existe no dicionário
-if model_id in model_dict:
-    model = model_dict[model_id]
-    st.write(f'Modelo selecionado: {model_type} treinado com {proporcao}% de dados de treinamento.')
+if model_id in model_dict_max_q and model_id in model_dict_min_ber:
+    model_max_q = model_dict_max_q[model_id]
+    model_min_ber = model_dict_min_ber[model_id]
+    st.write(f'Modelo selecionado: {model_type} treinado com {proporcao}% de dados de treinamento (MAX_Q_FACTOR e MIN_BER).')
 
-# Solicitar entrada do usuário
 Att = st.number_input("Digite o valor para Atenuação: ", key="Att")
 if Att and isinstance(Att, (int, float)):
     Disp_i = st.number_input("Digite o valor inicial para Dispersão: ", key="Disp_i")
@@ -118,18 +133,24 @@ if Att and isinstance(Att, (int, float)):
         if Disp_f and isinstance(Disp_f, (int, float)):
             p = st.number_input("Digite o valor do incremento para Dispersão: ", key="p")
             if p and isinstance(p, (int, float)):
-                # Chamar a função de fazer previsão aqui
                 if st.button("Calcular Previsão"):
-                    fig, input_values, predictions = fazer_previsao(Att, Disp_i, Disp_f, p, model, model_type)
+                    fig_max_q, input_values_max_q, predictions_max_q = fazer_previsao_max_q(Att, Disp_i, Disp_f, p, model_max_q, model_type)
+                    fig_min_ber, input_values_min_ber, predictions_min_ber = fazer_previsao_min_ber(Att, Disp_i, Disp_f, p, model_min_ber, model_type)
 
-                    # Criar colunas para exibir gráfico e tabela na mesma linha
                     col1, col2 = st.columns(2)
 
-                    # Mostrar o gráfico na primeira coluna
                     with col1:
-                        st.pyplot(fig)
+                        st.pyplot(fig_max_q)
 
-                    # Mostrar a tabela na segunda coluna
                     with col2:
-                        st.subheader('Valores de Entrada e Resultados do Modelo')
-                        st.table(pd.concat([input_values, pd.DataFrame({'MAX_Q_FACTOR': predictions})], axis=1))
+                        st.pyplot(fig_min_ber)
+
+                    col3, col4 = st.columns(2)
+
+                    with col3:
+                        st.subheader('Valores de Entrada e Resultados do Modelo (MAX_Q_FACTOR)')
+                        st.table(pd.concat([input_values_max_q, pd.DataFrame({'MAX_Q_FACTOR': predictions_max_q})], axis=1))
+
+                    with col4:
+                        st.subheader('Valores de Entrada e Resultados do Modelo (MIN_BER)')
+                        st.table(pd.concat([input_values_min_ber, pd.DataFrame({'MIN_BER': predictions_min_ber})], axis=1))
