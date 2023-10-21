@@ -103,7 +103,8 @@ with col3:
 
 st.markdown("<hr/>", unsafe_allow_html=True)
 
-st.title("Ensino de Comunicações Ópticas Potencializado por Machine Learning")
+# Alterando o tamanho da fonte do título
+st.markdown('<h1 style="font-size:33px;">Ensino de Comunicações Ópticas Potencializado por Machine Learning</h1>', unsafe_allow_html=True)
 
 # Carregar o dicionário de modelos
 model_dict_max_q, model_dict_min_ber = load_models()
@@ -125,6 +126,14 @@ if model_id in model_dict_max_q and model_id in model_dict_min_ber:
     model_min_ber = model_dict_min_ber[model_id]
     st.write(f'Modelo selecionado: {model_type} treinado com {proporcao}% de dados de treinamento (MAX_Q_FACTOR e MIN_BER).')
 
+fig_max_q = None
+fig_min_ber = None
+input_values_max_q = None
+input_values_min_ber = None
+predictions_max_q = None
+predictions_min_ber = None
+
+# Seção de entrada de dados
 Att = st.number_input("Digite o valor para Atenuação: ", key="Att")
 if Att and isinstance(Att, (int, float)):
     Disp_i = st.number_input("Digite o valor inicial para Dispersão: ", key="Disp_i")
@@ -137,20 +146,24 @@ if Att and isinstance(Att, (int, float)):
                     fig_max_q, input_values_max_q, predictions_max_q = fazer_previsao_max_q(Att, Disp_i, Disp_f, p, model_max_q, model_type)
                     fig_min_ber, input_values_min_ber, predictions_min_ber = fazer_previsao_min_ber(Att, Disp_i, Disp_f, p, model_min_ber, model_type)
 
-                    col1, col2 = st.columns(2)
+st.markdown("<hr/>", unsafe_allow_html=True)
 
-                    with col1:
-                        st.pyplot(fig_max_q)
+# Seção de visualização
+col1, col2 = st.columns(2)
 
-                    with col2:
-                        st.pyplot(fig_min_ber)
+with col1:
+    if fig_max_q is not None:
+        st.pyplot(fig_max_q)
 
-                    col3, col4 = st.columns(2)
+with col2:
+    if fig_min_ber is not None:
+        st.pyplot(fig_min_ber)
 
-                    with col3:
-                        st.subheader('Valores de Entrada e Resultados do Modelo (MAX_Q_FACTOR)')
-                        st.table(pd.concat([input_values_max_q, pd.DataFrame({'MAX_Q_FACTOR': predictions_max_q})], axis=1))
+st.markdown("<hr/>", unsafe_allow_html=True)
 
-                    with col4:
-                        st.subheader('Valores de Entrada e Resultados do Modelo (MIN_BER)')
-                        st.table(pd.concat([input_values_min_ber, pd.DataFrame({'MIN_BER': predictions_min_ber})], axis=1))
+# Condição para exibir a frase 'Dados de Entrada e Previsões'
+if input_values_max_q is not None and input_values_min_ber is not None and predictions_max_q is not None and predictions_min_ber is not None:
+    st.subheader('Dados de Entrada e Previsões')
+    # Crie um único DataFrame combinando as informações de MAX_Q_FACTOR e MIN_BER
+    data = pd.DataFrame({'Att': input_values_max_q['Att'], 'Disp': input_values_max_q['Disp'], 'MAX_Q_FACTOR': predictions_max_q, 'MIN_BER': predictions_min_ber})
+    st.table(data)
