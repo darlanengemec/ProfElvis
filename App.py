@@ -36,8 +36,8 @@ def fazer_previsao_max_q(Att, Disp_i, Disp_f, p, model, model_type):
 
     ax.plot(Disp_i, model.predict([[Att, Disp_i]]), marker="o", markersize=8, color='red', label=f'Atenuação: {Att}')
 
-    ax.set_title('Regressor')
-    ax.set_xlabel('Dispersão')
+    ax.set_title('Gráfico da Predição')
+    ax.set_xlabel('Dispersão [ps/nm/km]')
     ax.set_ylabel('MAX_Q_FACTOR')
 
     ax.tick_params(axis='x', labelrotation=45)
@@ -70,9 +70,9 @@ def fazer_previsao_min_ber(Att, Disp_i, Disp_f, p, model, model_type):
 
     ax.plot(Disp_i, model.predict([[Att, Disp_i]]), marker="o", markersize=8, color='red', label=f'Atenuação: {Att}')
 
-    ax.set_title('Regressor')
-    ax.set_xlabel('Dispersão')
-    ax.set_ylabel('MIN_BER')
+    ax.set_title('Gráfico da Predição')
+    ax.set_xlabel('Dispersão [ps/nm/km]')
+    ax.set_ylabel('MIN_BER [')
 
     ax.tick_params(axis='x', labelrotation=45)
     ax.set_xticks(np.arange(Disp_i, Disp_f + 1, p))
@@ -134,13 +134,13 @@ predictions_max_q = None
 predictions_min_ber = None
 
 # Seção de entrada de dados
-Att = st.number_input("Digite o valor para Atenuação: ", key="Att")
+Att = st.number_input("Digite o valor para Atenuação [dB/km] (Digite valores entre 0,1 e 0,6): ", key="Att")
 if Att and isinstance(Att, (int, float)):
-    Disp_i = st.number_input("Digite o valor inicial para Dispersão: ", key="Disp_i")
+    Disp_i = st.number_input("Digite o valor inicial para Dispersão [ps/nm/km] (Digite valores entre 12,75 e 17,75): ", key="Disp_i")
     if Disp_i and isinstance(Disp_i, (int, float)):
-        Disp_f = st.number_input("Digite o valor final para Dispersão: ", key="Disp_f")
+        Disp_f = st.number_input("Digite o valor final para Dispersão [ps/nm/km] (Digite valores entre 12,75 e 17,75): ", key="Disp_f")
         if Disp_f and isinstance(Disp_f, (int, float)):
-            p = st.number_input("Digite o valor do incremento para Dispersão: ", key="p")
+            p = st.number_input("Digite o valor do incremento para Dispersão (Digite valores maiores ou igual a 0,2): ", key="p")
             if p and isinstance(p, (int, float)):
                 if st.button("Calcular Previsão"):
                     fig_max_q, input_values_max_q, predictions_max_q = fazer_previsao_max_q(Att, Disp_i, Disp_f, p, model_max_q, model_type)
@@ -165,5 +165,5 @@ st.markdown("<hr/>", unsafe_allow_html=True)
 if input_values_max_q is not None and input_values_min_ber is not None and predictions_max_q is not None and predictions_min_ber is not None:
     st.subheader('Dados de Entrada e Previsões')
     # Crie um único DataFrame combinando as informações de MAX_Q_FACTOR e MIN_BER
-    data = pd.DataFrame({'Att': input_values_max_q['Att'], 'Disp': input_values_max_q['Disp'], 'MAX_Q_FACTOR': predictions_max_q, 'MIN_BER': predictions_min_ber})
+    data = pd.DataFrame({'Att [dB/km]': input_values_max_q['Att'], 'Disp [ps/nm/km]': input_values_max_q['Disp'], 'MAX_Q_FACTOR': predictions_max_q, 'MIN_BER': predictions_min_ber})
     st.table(data)
