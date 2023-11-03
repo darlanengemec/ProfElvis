@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import pickle
 import pandas as pd
 import numpy as np
+import tempfile
+import os
+import xlsxwriter
+import base64
 
 # Função para carregar o dicionário de modelos
 def load_models():
@@ -72,7 +76,7 @@ def fazer_previsao_min_ber(Att, Disp_i, Disp_f, p, model, model_type):
 
     ax.set_title('Gráfico da Predição')
     ax.set_xlabel('Dispersão [ps/nm/km]')
-    ax.set_ylabel('MIN_BER [')
+    ax.set_ylabel('MIN_BER')
 
     ax.tick_params(axis='x', labelrotation=45)
     ax.set_xticks(np.arange(Disp_i, Disp_f + 1, p))
@@ -164,6 +168,41 @@ st.markdown("<hr/>", unsafe_allow_html=True)
 # Condição para exibir a frase 'Dados de Entrada e Previsões'
 if input_values_max_q is not None and input_values_min_ber is not None and predictions_max_q is not None and predictions_min_ber is not None:
     st.subheader('Dados de Entrada e Previsões')
-    # Crie um único DataFrame combinando as informações de MAX_Q_FACTOR e MIN_BER
-    data = pd.DataFrame({'Att [dB/km]': input_values_max_q['Att'], 'Disp [ps/nm/km]': input_values_max_q['Disp'], 'MAX_Q_FACTOR': predictions_max_q, 'MIN_BER': predictions_min_ber})
+
+    # Formate os números para 8 casas decimais
+    data = pd.DataFrame({
+        'Att [dB/km]': input_values_max_q['Att'],
+        'Disp [ps/nm/km]': input_values_max_q['Disp'],
+        'MAX_Q_FACTOR': ["%.8f" % val for val in predictions_max_q],
+        'MIN_BER': ["%.8f" % val for val in predictions_min_ber]
+    })
+
+    # Exibir a tabela
     st.table(data)
+
+    # Criar um diretório temporário para armazenar o arquivo Excel
+    temp_dir = tempfile.TemporaryDirectory()
+    temp_file_path = os.path.join(temp_dir.name, "previsoes_opticas.xlsx")
+
+    # Escrever os dados na planilha usando xlsxwriter
+    workbook = xlsxwriter.Workbook(temp_file_path)
+    worksheet = workbook.add_worksheet()
+
+    for i, col in enumerate(data.columns):
+        worksheet.write(0, i, col)
+        for j, val in enumerate(data[col]):
+            worksheet.write(j + 1, i, val)
+
+    workbook.close()
+
+    # Link para download do arquivo Excel
+    st.markdown('## Download Tabela XLSX')
+    st.write("Clique no link abaixo para baixar a tabela Excel:")
+    with open(temp_file_path, 'rb') as f:
+        xls_data = f.read()
+        b64 = base64.b64encode(xls_data).decode()
+        href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="previsoes_opticas.xlsx">Baixar Tabela Excel</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
+    # Limpar o diretório temporário quando não for mais necessário
+    temp_dir.cleanup()
